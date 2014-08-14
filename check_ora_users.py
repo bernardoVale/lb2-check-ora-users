@@ -87,13 +87,13 @@ def main():
     if args.user.lower() == 'sys':
         result = run_sqlplus(args.pwd, args.user, args.sid, query, True, True)
     else:
-        result = run_sqlplus(args.pwd, args.user, args.sid, query, True, True)
+        result = run_sqlplus(args.pwd, args.user, args.sid, query, True, False)
     perf_data = ''
     total = 0
     if 'ORA-' in result:
         print 'Erro desconhecido ao executar a query:'+result
         sys.exit(3)
-    # Replace 4 whitespaces e devido ao resultado do sqlplus,
+    # Replace 4/3 whitespaces devido ao resultado do sqlplus,
     # split '' serve para criar a minha lista com cada coluna em um elemnto
     #strip para tirar os whites antes e dps.
     r = result.strip().replace("    "," ").replace("   "," ").split(' ')
