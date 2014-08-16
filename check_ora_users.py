@@ -93,10 +93,10 @@ def main():
     if 'ORA-' in result:
         print 'Erro desconhecido ao executar a query:'+result
         sys.exit(3)
-    # Replace 4/3 whitespaces devido ao resultado do sqlplus,
+    # Replace 4/3/2 whitespaces devido ao resultado do sqlplus,
     # split '' serve para criar a minha lista com cada coluna em um elemnto
     #strip para tirar os whites antes e dps.
-    r = result.strip().replace("    "," ").replace("   "," ").split(' ')
+    r = result.strip().replace("    "," ").replace("   "," ").replace("  "," ").split(' ')
     it = iter(r)
     for count, schema in zip(it,it):
         perf_data += schema + '=' + count + ' '
