@@ -30,12 +30,21 @@ def parse_args():
                         dest='warning',
                         help='Quantidade de usuarios para alertar WARNING.')
 
+    parser.add_argument('--sum', action='store_true',
+                        dest='sum',
+                        help='Lista apenas a somatória.')
+
     parser.add_argument('--schemas', action='store',
                         dest='schemas',
                         help='Lista de usuários que devem ser analisados. \n'
                              'Caso não exista irá contabilizar todos.'
                              'Com exceção dos usuários do sistema. SYS,SYSTEM, etc..')
     p = parser.parse_args()
+
+    if p.sum and p.schemas != None:
+        print "Erro, os parâmetros --schemas e --sum não podem ser utilizados em conjunto." \
+              " Escolha um dos dois"
+        sys.exit(3)
     return p
 
 def wrap_schemas(schemas):
@@ -50,11 +59,12 @@ def wrap_schemas(schemas):
     k = aux.rfind(",")
     return ''.join((aux[:k]+""))
 
-def get_my_query(schemas):
+def get_my_query(schemas,sum):
     """
     Retorna a query necessária para cada tipo de entrada
     Caso None deve adicionar somente os usuários do sistema
     :param schemas: Schemas a serem contados
+    :param sum: Realiza somente a somatoria
     :return:
     """
     not_this_schemas = "'MGMT_VIEW','SYS','SYSTEM','DBSNMP','SYSMAN','OUTLN','FLOWS_FILES'\
@@ -62,6 +72,14 @@ def get_my_query(schemas):
 ,'OWBSYS','ORDDATA','ANONYMOUS','EXFSYS','XDB','ORDSYS','CTXSYS','ORDPLUGINS','OLAPSYS'\
 ,'SI_INFORMTN_SCHEMA','SCOTT','XS$NULL','MDDATA','ORACLE_OCM'\
 ,'DIP','APEX_PUBLIC_USER','SPATIAL_CSW_ADMIN_USR','SPATIAL_WFS_ADMIN_USR'"
+    if sum:
+        return "set head off \n \
+                set feedback off \n \
+                set pagesize 999 \n \
+                set long 999 \n \
+               select decode(COUNT(*),1,0,count(*)) from \
+             dba_users inner join v$session using (username) \
+              where username not in ("+not_this_schemas+");"
     if schemas != None:
         return "set head off \n \
                 set feedback off \n \
@@ -82,7 +100,7 @@ def get_my_query(schemas):
              group by username;"
 def main():
     args = parse_args()
-    query = get_my_query(args.schemas)
+    query = get_my_query(args.schemas,args.sum)
     result = ''
     if args.user.lower() == 'sys':
         result = run_sqlplus(args.pwd, args.user, args.sid, query, True, True)
@@ -97,10 +115,13 @@ def main():
     # split '' serve para criar a minha lista com cada coluna em um elemnto
     #strip para tirar os whites antes e dps.
     r = result.strip().replace("    "," ").replace("   "," ").replace("  "," ").split(' ')
-    it = iter(r)
-    for count, schema in zip(it,it):
-        perf_data += schema + '=' + count + ' '
-        total += int(count)
+    if args.sum:
+        total = int(r[0])
+    else:
+        it = iter(r)
+        for count, schema in zip(it,it):
+            perf_data += schema + '=' + count + ' '
+            total += int(count)
     perf_data += 'TOTAL='+str(total)+';'+args.warning
     if total > int(args.warning):
         print 'WARNING - Sobrecarga no banco, Sessões:'+str(total)+' | ' +perf_data
@@ -157,4 +178,3 @@ def estabConnection(user, pwd, sid, host, is_sysdba):
 
 if __name__ == '__main__':
     main()
-
